@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medidor de Coordenadas - Photobooth</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .upload-area {
+            border: 2px dashed #ccc;
+            padding: 40px;
+            text-align: center;
+            margin: 20px 0;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+        .upload-area:hover {
+            border-color: #007bff;
+        }
+        #templateImage {
+            max-width: 100%;
+            max-height: 70vh;
+            display: none;
+            margin: 0 auto;
+        }
+        #imageContainer {
+            position: relative;
+            display: inline-block;
+        }
+        .area-box {
+            position: absolute;
+            border: 3px solid red;
+            background: rgba(255, 0, 0, 0.2);
+            cursor: move;
+        }
+        .area-label {
+            position: absolute;
+            top: -25px;
+            left: 0;
+            background: red;
+            color: white;
+            padding: 2px 8px;
+            font-size: 12px;
+            border-radius: 3px;
+        }
+        .coordinates {
+            background: #333;
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            font-family: monospace;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .instructions {
+            background: #e7f3ff;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📏 Medidor de Coordenadas - Photobooth</h1>
+        
+        <div class="instructions">
+            <h3>Como usar:</h3>
+            <ol>
+                <li>Carregue seu template (moldura com 3 espaços vazios)</li>
+                <li>Clique em "Adicionar Área da Foto 1"</li>
+                <li>Arraste e redimensione a caixa vermelha sobre o PRIMEIRO espaço para foto</li>
+                <li>Repita para as fotos 2 e 3</li>
+                <li>Copie as coordenadas que aparecem abaixo</li>
+            </ol>
+        </div>
+
+        <div class="upload-area" id="uploadArea">
+            <p>📁 Clique aqui para carregar seu template</p>
+            <input type="file" id="fileInput" accept="image/*" style="display: none;">
+        </div>
+
+        <div id="imageContainer" style="display: none;">
+            <img id="templateImage" alt="Template">
+        </div>
+
+        <div style="text-align: center; margin: 20px 0;">
+            <button onclick="addArea(1)">Adicionar Área da Foto 1</button>
+            <button onclick="addArea(2)">Adicionar Área da Foto 2</button>
+            <button onclick="addArea(3)">Adicionar Área da Foto 3</button>
+            <button onclick="resetAreas()" style="background: #dc3545;">Limpar Tudo</button>
+        </div>
+
+        <div class="coordinates">
+            <h3>📋 Coordenadas para o Código:</h3>
+            <pre id="coordinatesOutput">Aguardando definição das áreas...</pre>
+        </div>
+
+        <button onclick="copyCoordinates()" style="background: #28a745;">📋 Copiar Coordenadas</button>
+    </div>
+
+    <script>
+        let areas = [];
+        let currentArea = null;
+        let isDragging = false;
+        let startX, startY;
+
+        // Carregar imagem
+        document.getElementById('uploadArea').addEventListener('click', () => {
+            document.getElementById('fileInput').click();
+        });
+
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = document.getElementById('templateImage');
+                    img.src = e.target.result;
+                    img.style.display = 'block';
+                    document.getElementById('imageContainer').style.display = 'block';
+                    document.getElementById('uploadArea').style.display = 'none';
+                    
+                    // Quando a imagem carregar, pegar suas dimensões
+                    img.onload = function() {
+                        resetAreas();
+                    };
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        function addArea(number) {
+            const img = document.getElementById('templateImage');
+            const container = document.getElementById('imageContainer');
+            
+            // Remove área existente com mesmo número
+            areas = areas.filter(area => area.number !== number);
+            document.querySelectorAll(`[data-area="${number}"]`).forEach(el => el.remove());
+            
+            // Cria nova área
+            const areaBox = document.createElement('div');
+            areaBox.className = 'area-box';
+            areaBox.dataset.area = number;
+            
+            const label = document.createElement('div');
+            label.className = 'area-label';
+            label.textContent = `Foto ${number}`;
+            
+            // Posição e tamanho padrão (centralizado)
+            const x = img.width * 0.1;
+            const y = img.height * 0.1;
+            const width = img.width * 0.25;
+            const height = img.height * 0.3;
+            
+            areaBox.style.left = x + 'px';
+            areaBox.style.top = y + 'px';
+            areaBox.style.width = width + 'px';
+            areaBox.style.height = height + 'px';
+            
+            areaBox.appendChild(label);
+            container.appendChild(areaBox);
+            
+            // Adiciona eventos de arrastar
+            makeDraggable(areaBox, number);
+            
+            // Salva área
+            areas.push({
+                number: number,
+                x: x,
+                y: y,
+                width: width,
+                height: height
+            });
+            
+            updateCoordinates();
+        }
+
+        function makeDraggable(element, number) {
+            element.addEventListener('mousedown', startDrag);
+            element.addEventListener('touchstart', startDrag);
+            
+            function startDrag(e) {
+                e.preventDefault();
+                isDragging = true;
+                currentArea = number;
+                
+                const rect = element.getBoundingClientRect();
+                startX = (e.clientX || e.touches[0].clientX) - rect.left;
+                startY = (e.clientY || e.touches[0].clientY) - rect.top;
+                
+                document.addEventListener('mousemove', drag);
+                document.addEventListener('touchmove', drag);
+                document.addEventListener('mouseup', stopDrag);
+                document.addEventListener('touchend', stopDrag);
+            }
+            
+            function drag(e) {
+                if (!isDragging || currentArea !== number) return;
+                
+                const container = document.getElementById('imageContainer').getBoundingClientRect();
+                const x = (e.clientX || e.touches[0].clientX) - container.left - startX;
+                const y = (e.clientY || e.touches[0].clientY) - container.top - startY;
+                
+                // Limita dentro da imagem
+                const maxX = container.width - element.offsetWidth;
+                const maxY = container.height - element.offsetHeight;
+                
+                element.style.left = Math.max(0, Math.min(x, maxX)) + 'px';
+                element.style.top = Math.max(0, Math.min(y, maxY)) + 'px';
+                
+                // Atualiza coordenadas
+                const areaIndex = areas.findIndex(a => a.number === number);
+                if (areaIndex !== -1) {
+                    areas[areaIndex].x = parseInt(element.style.left);
+                    areas[areaIndex].y = parseInt(element.style.top);
+                    updateCoordinates();
+                }
+            }
+            
+            function stopDrag() {
+                isDragging = false;
+                currentArea = null;
+                document.removeEventListener('mousemove', drag);
+                document.removeEventListener('touchmove', drag);
+            }
+        }
+
+        function updateCoordinates() {
+            const output = document.getElementById('coordinatesOutput');
+            if (areas.length === 0) {
+                output.textContent = 'Aguardando definição das áreas...';
+                return;
+            }
+            
+            let text = '// COORDENADAS PARA O CÓDIGO PC.HTML\n';
+            text += 'const photoAreas = [\n';
+            
+            areas.sort((a, b) => a.number - b.number).forEach(area => {
+                text += `  {\n`;
+                text += `    number: ${area.number},\n`;
+                text += `    x: ${area.x},\n`;
+                text += `    y: ${area.y},\n`;
+                text += `    width: ${area.width},\n`;
+                text += `    height: ${area.height}\n`;
+                text += `  },\n`;
+            });
+            
+            text += '];';
+            output.textContent = text;
+        }
+
+        function resetAreas() {
+            areas = [];
+            document.querySelectorAll('.area-box').forEach(el => el.remove());
+            updateCoordinates();
+        }
+
+        function copyCoordinates() {
+            const text = document.getElementById('coordinatesOutput').textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                alert('✅ Coordenadas copiadas! Agora cole no código pc.html');
+            });
+        }
+    </script>
+</body>
+</html>
