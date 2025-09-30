@@ -3,101 +3,75 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Medidor Completo - Photobooth</title>
+    <title>Medidor Melhorado - Photobooth</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
         body {
             font-family: Arial, sans-serif;
-            max-width: 1200px;
-            margin: 0 auto;
             padding: 20px;
-            background: #f0f0f0;
+            background: #1a1a1a;
+            color: white;
         }
         .container {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-width: 1000px;
+            margin: 0 auto;
         }
         h1 {
-            color: #333;
             text-align: center;
+            margin-bottom: 20px;
+            color: #fff;
         }
-        .upload-area {
-            border: 2px dashed #ccc;
+        .upload-section {
+            border: 2px dashed #666;
             padding: 40px;
             text-align: center;
-            margin: 20px 0;
+            margin-bottom: 20px;
             border-radius: 10px;
             cursor: pointer;
-            transition: all 0.3s;
         }
-        .upload-area:hover {
+        .upload-section:hover {
             border-color: #007bff;
-            background: #f8fbff;
         }
-        #templateImage {
+        #templatePreview {
             max-width: 100%;
-            max-height: 70vh;
+            max-height: 500px;
             display: none;
             margin: 0 auto;
+            border: 2px solid #444;
+        }
+        .instructions {
+            background: #2a2a2a;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            line-height: 1.6;
+        }
+        .area-marker {
+            position: absolute;
+            border: 3px solid;
+            background: rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            font-size: 20px;
+            text-shadow: 1px 1px 2px black;
         }
         #imageContainer {
             position: relative;
             display: inline-block;
-            margin: 0 auto;
+            margin: 20px 0;
         }
-        .area-box {
-            position: absolute;
-            border: 3px solid;
-            background: rgba(255, 0, 0, 0.2);
-            cursor: move;
-        }
-        .area-box[data-area="1"] { border-color: #ff0000; }
-        .area-box[data-area="2"] { border-color: #00ff00; }
-        .area-box[data-area="3"] { border-color: #0000ff; }
-        
-        .area-label {
-            position: absolute;
-            top: -30px;
-            left: 0;
-            color: white;
-            padding: 2px 8px;
-            font-size: 12px;
-            border-radius: 3px;
-            font-weight: bold;
-        }
-        .area-box[data-area="1"] .area-label { background: #ff0000; }
-        .area-box[data-area="2"] .area-label { background: #00ff00; color: #000; }
-        .area-box[data-area="3"] .area-label { background: #0000ff; }
-        
-        .resize-handle {
-            position: absolute;
-            width: 12px;
-            height: 12px;
-            background: white;
-            border: 2px solid;
-            border-radius: 2px;
-            cursor: nwse-resize;
-        }
-        .resize-handle.ne { cursor: nesw-resize; }
-        .resize-handle.nw { cursor: nwse-resize; }
-        .resize-handle.se { cursor: nwse-resize; }
-        .resize-handle.sw { cursor: nesw-resize; }
-        
-        .resize-handle.n { top: -6px; left: 50%; margin-left: -6px; cursor: ns-resize; }
-        .resize-handle.e { top: 50%; right: -6px; margin-top: -6px; cursor: ew-resize; }
-        .resize-handle.s { bottom: -6px; left: 50%; margin-left: -6px; cursor: ns-resize; }
-        .resize-handle.w { top: 50%; left: -6px; margin-top: -6px; cursor: ew-resize; }
-        .resize-handle.ne { top: -6px; right: -6px; }
-        .resize-handle.nw { top: -6px; left: -6px; }
-        .resize-handle.se { bottom: -6px; right: -6px; }
-        .resize-handle.sw { bottom: -6px; left: -6px; }
-        
-        .coordinates {
+        .coordinates-output {
             background: #333;
-            color: white;
-            padding: 15px;
-            border-radius: 5px;
+            padding: 20px;
+            border-radius: 10px;
             margin: 20px 0;
             font-family: monospace;
             white-space: pre-wrap;
@@ -106,90 +80,75 @@
             background: #007bff;
             color: white;
             border: none;
-            padding: 10px 20px;
+            padding: 12px 24px;
             margin: 5px;
             border-radius: 5px;
             cursor: pointer;
             font-size: 16px;
-            transition: background 0.3s;
         }
         button:hover {
             background: #0056b3;
         }
-        .instructions {
-            background: #e7f3ff;
-            padding: 15px;
-            border-radius: 5px;
-            margin: 10px 0;
-            line-height: 1.5;
-        }
-        .controls {
+        .marker-controls {
             text-align: center;
             margin: 20px 0;
         }
-        .area-color {
-            display: inline-block;
-            width: 12px;
-            height: 12px;
-            margin-right: 5px;
-            border-radius: 2px;
+        .area-info {
+            margin: 10px 0;
+            padding: 10px;
+            background: #2a2a2a;
+            border-radius: 5px;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>📏 Medidor Completo - Photobooth</h1>
+        <h1>🎯 Medidor Melhorado - Posições Relativas</h1>
         
         <div class="instructions">
-            <h3>🎯 Como usar:</h3>
+            <h3>📋 COMO USAR (MUITO MAIS FÁCIL):</h3>
             <ol>
-                <li><strong>Carregue seu template</strong> (moldura 3375x6000 pixels)</li>
-                <li><strong>Adicione as áreas</strong> para cada foto (1, 2, 3)</li>
-                <li><strong>Arraste</strong> as caixas para posicionar nos espaços certos</li>
-                <li><strong>Redimensione</strong> puxando os cantinhos (✓ igual Canva)</li>
-                <li><strong>Copie as coordenadas</strong> para colar no código</li>
+                <li><strong>Carregue seu template</strong> (3375x6000 pixels)</li>
+                <li><strong>Clique exatamente no CENTRO de cada área</strong> onde deve ficar cada foto</li>
+                <li><strong>O sistema calcula automaticamente</strong> as posições relativas</li>
+                <li><strong>Copie o código gerado</strong> e cole no celular.html</li>
             </ol>
-            <p><strong>💡 Dica:</strong> Use os cantinhos para ajustar perfeitamente nos espaços vazios!</p>
+            <p>💡 <strong>Dica:</strong> Clique no meio de cada espaço vazio do template</p>
         </div>
 
-        <div class="upload-area" id="uploadArea">
-            <p>📁 <strong>Clique aqui para carregar seu template</strong></p>
-            <p style="font-size: 14px; color: #666;">Dimensões: 3375 × 6000 pixels</p>
+        <div class="upload-section" id="uploadSection">
+            <p>📁 CLIQUE AQUI PARA CARREGAR SEU TEMPLATE</p>
+            <p><small>Dimensões: 3375 × 6000 pixels (Vertical)</small></p>
             <input type="file" id="fileInput" accept="image/*" style="display: none;">
         </div>
 
-        <div id="imageContainer" style="display: none; text-align: center;">
-            <img id="templateImage" alt="Template">
+        <div id="imageContainer" style="display: none;">
+            <img id="templatePreview" alt="Template Preview">
         </div>
 
-        <div class="controls">
-            <button onclick="addArea(1)"><span class="area-color" style="background:#ff0000"></span>Adicionar Área Foto 1</button>
-            <button onclick="addArea(2)"><span class="area-color" style="background:#00ff00"></span>Adicionar Área Foto 2</button>
-            <button onclick="addArea(3)"><span class="area-color" style="background:#0000ff"></span>Adicionar Área Foto 3</button>
-            <button onclick="resetAreas()" style="background: #dc3545;">🗑️ Limpar Tudo</button>
+        <div class="marker-controls">
+            <button onclick="addMarker(1)">📍 Marcar Posição da Foto 1</button>
+            <button onclick="addMarker(2)">📍 Marcar Posição da Foto 2</button>
+            <button onclick="addMarker(3)">📍 Marcar Posição da Foto 3</button>
+            <button onclick="clearMarkers()" style="background: #dc3545;">🗑️ Limpar Marcadores</button>
         </div>
 
-        <div class="coordinates">
-            <h3>📋 Coordenadas para o Código:</h3>
-            <pre id="coordinatesOutput">Aguardando definição das áreas...</pre>
+        <div class="coordinates-output">
+            <h3>📋 CÓDIGO GERADO (Cole no celular.html):</h3>
+            <pre id="outputCode">// Aguardando marcações...</pre>
         </div>
 
         <div style="text-align: center;">
-            <button onclick="copyCoordinates()" style="background: #28a745;">📋 Copiar Coordenadas</button>
-            <button onclick="downloadConfig()" style="background: #ff6b00;">💾 Baixar Configuração</button>
+            <button onclick="copyCode()" style="background: #28a745;">📋 Copiar Código</button>
         </div>
     </div>
 
     <script>
-        let areas = [];
-        let currentArea = null;
-        let isDragging = false;
-        let isResizing = false;
-        let resizeDirection = null;
-        let startX, startY, startWidth, startHeight, startLeft, startTop;
+        let markers = [];
+        let templateWidth = 3375;
+        let templateHeight = 6000;
 
-        // Carregar imagem
-        document.getElementById('uploadArea').addEventListener('click', () => {
+        document.getElementById('uploadSection').addEventListener('click', () => {
             document.getElementById('fileInput').click();
         });
 
@@ -198,296 +157,142 @@
             if (file) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    const img = document.getElementById('templateImage');
+                    const img = document.getElementById('templatePreview');
                     img.src = e.target.result;
                     img.style.display = 'block';
                     document.getElementById('imageContainer').style.display = 'block';
-                    document.getElementById('uploadArea').style.display = 'none';
+                    document.getElementById('uploadSection').style.display = 'none';
                     
                     img.onload = function() {
-                        resetAreas();
+                        clearMarkers();
                     };
                 };
                 reader.readAsDataURL(file);
             }
         });
 
-        function addArea(number) {
-            const img = document.getElementById('templateImage');
+        function addMarker(photoNumber) {
+            const img = document.getElementById('templatePreview');
             const container = document.getElementById('imageContainer');
             
-            // Remove área existente com mesmo número
-            areas = areas.filter(area => area.number !== number);
-            document.querySelectorAll(`[data-area="${number}"]`).forEach(el => el.remove());
+            // Remove marcador existente
+            const existingMarker = document.querySelector(`[data-photo="${photoNumber}"]`);
+            if (existingMarker) {
+                existingMarker.remove();
+                markers = markers.filter(m => m.number !== photoNumber);
+            }
             
-            // Cria nova área
-            const areaBox = document.createElement('div');
-            areaBox.className = 'area-box';
-            areaBox.dataset.area = number;
+            // Cria instrução
+            alert(`📍 Clique no CENTRO da área onde deve ficar a FOTO ${photoNumber}`);
             
-            const label = document.createElement('div');
-            label.className = 'area-label';
-            label.textContent = `Foto ${number}`;
-            label.innerHTML = `📸 Foto ${number}`;
-            
-            // Tamanho padrão baseado nas dimensões da imagem
-            const width = img.width * 0.25;
-            const height = img.height * 0.15;
-            const x = (img.width - width) / 2;
-            const y = img.height * (0.2 + (number-1) * 0.25);
-            
-            areaBox.style.left = x + 'px';
-            areaBox.style.top = y + 'px';
-            areaBox.style.width = width + 'px';
-            areaBox.style.height = height + 'px';
-            
-            areaBox.appendChild(label);
-            
-            // Adiciona alças de redimensionamento
-            const handles = ['n', 'e', 's', 'w', 'ne', 'nw', 'se', 'sw'];
-            handles.forEach(dir => {
-                const handle = document.createElement('div');
-                handle.className = `resize-handle ${dir}`;
-                handle.dataset.direction = dir;
-                areaBox.appendChild(handle);
+            // Adiciona evento de clique único
+            const clickHandler = (e) => {
+                const rect = img.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
                 
-                // Eventos de redimensionamento
-                handle.addEventListener('mousedown', (e) => startResize(e, dir, number));
-                handle.addEventListener('touchstart', (e) => startResize(e, dir, number));
-            });
+                // Calcula posições relativas (0-1)
+                const relX = x / rect.width;
+                const relY = y / rect.height;
+                
+                // Converte para pixels no template original
+                const absX = Math.round(relX * templateWidth);
+                const absY = Math.round(relY * templateHeight);
+                
+                // Tamanho padrão baseado no template (ajustável)
+                const width = Math.round(templateWidth * 0.2); // 20% da largura
+                const height = Math.round(templateHeight * 0.1); // 10% da altura
+                
+                // Cria marcador visual
+                createVisualMarker(photoNumber, x, y, container);
+                
+                // Salva marcador
+                markers.push({
+                    number: photoNumber,
+                    relX: relX,
+                    relY: relY,
+                    absX: absX,
+                    absY: absY,
+                    width: width,
+                    height: height
+                });
+                
+                // Atualiza código
+                updateCode();
+                
+                // Remove evento
+                img.removeEventListener('click', clickHandler);
+            };
             
-            container.appendChild(areaBox);
-            
-            // Eventos de arrastar
-            areaBox.addEventListener('mousedown', (e) => startDrag(e, number));
-            areaBox.addEventListener('touchstart', (e) => startDrag(e, number));
-            
-            // Salva área
-            areas.push({
-                number: number,
-                x: x,
-                y: y,
-                width: width,
-                height: height
-            });
-            
-            updateCoordinates();
+            img.addEventListener('click', clickHandler, { once: true });
         }
 
-        function startDrag(e, number) {
-            if (e.target.classList.contains('resize-handle')) return;
+        function createVisualMarker(photoNumber, x, y, container) {
+            const marker = document.createElement('div');
+            marker.className = 'area-marker';
+            marker.dataset.photo = photoNumber;
+            marker.textContent = photoNumber;
             
-            e.preventDefault();
-            isDragging = true;
-            currentArea = number;
+            // Estilo baseado no número da foto
+            const colors = ['#ff4444', '#44ff44', '#4444ff'];
+            marker.style.borderColor = colors[photoNumber - 1];
+            marker.style.background = colors[photoNumber - 1] + '40';
             
-            const areaBox = document.querySelector(`[data-area="${number}"]`);
-            const rect = areaBox.getBoundingClientRect();
-            const container = document.getElementById('imageContainer').getBoundingClientRect();
+            // Posiciona o marcador (20px para cima/esquerda para centralizar)
+            marker.style.left = (x - 20) + 'px';
+            marker.style.top = (y - 20) + 'px';
+            marker.style.width = '40px';
+            marker.style.height = '40px';
+            marker.style.borderRadius = '50%';
             
-            startX = (e.clientX || e.touches[0].clientX) - rect.left;
-            startY = (e.clientY || e.touches[0].clientY) - rect.top;
-            startLeft = parseInt(areaBox.style.left);
-            startTop = parseInt(areaBox.style.top);
-            
-            document.addEventListener('mousemove', drag);
-            document.addEventListener('touchmove', drag);
-            document.addEventListener('mouseup', stopDrag);
-            document.addEventListener('touchend', stopDrag);
+            container.appendChild(marker);
         }
 
-        function drag(e) {
-            if (!isDragging || !currentArea) return;
-            
-            const container = document.getElementById('imageContainer').getBoundingClientRect();
-            const areaBox = document.querySelector(`[data-area="${currentArea}"]`);
-            
-            const x = (e.clientX || e.touches[0].clientX) - container.left - startX;
-            const y = (e.clientY || e.touches[0].clientY) - container.top - startY;
-            
-            // Limita dentro da imagem
-            const maxX = container.width - areaBox.offsetWidth;
-            const maxY = container.height - areaBox.offsetHeight;
-            
-            areaBox.style.left = Math.max(0, Math.min(x, maxX)) + 'px';
-            areaBox.style.top = Math.max(0, Math.min(y, maxY)) + 'px';
-            
-            // Atualiza coordenadas
-            const areaIndex = areas.findIndex(a => a.number === currentArea);
-            if (areaIndex !== -1) {
-                areas[areaIndex].x = parseInt(areaBox.style.left);
-                areas[areaIndex].y = parseInt(areaBox.style.top);
-                updateCoordinates();
-            }
+        function clearMarkers() {
+            markers = [];
+            document.querySelectorAll('.area-marker').forEach(marker => marker.remove());
+            updateCode();
         }
 
-        function startResize(e, direction, number) {
-            e.preventDefault();
-            e.stopPropagation();
+        function updateCode() {
+            const output = document.getElementById('outputCode');
             
-            isResizing = true;
-            resizeDirection = direction;
-            currentArea = number;
-            
-            const areaBox = document.querySelector(`[data-area="${number}"]`);
-            const container = document.getElementById('imageContainer').getBoundingClientRect();
-            
-            startX = e.clientX || e.touches[0].clientX;
-            startY = e.clientY || e.touches[0].clientY;
-            startLeft = parseInt(areaBox.style.left);
-            startTop = parseInt(areaBox.style.top);
-            startWidth = parseInt(areaBox.style.width);
-            startHeight = parseInt(areaBox.style.height);
-            
-            document.addEventListener('mousemove', resize);
-            document.addEventListener('touchmove', resize);
-            document.addEventListener('mouseup', stopResize);
-            document.addEventListener('touchend', stopResize);
-        }
-
-        function resize(e) {
-            if (!isResizing || !currentArea) return;
-            
-            const areaBox = document.querySelector(`[data-area="${currentArea}"]`);
-            const container = document.getElementById('imageContainer').getBoundingClientRect();
-            
-            const deltaX = (e.clientX || e.touches[0].clientX) - startX;
-            const deltaY = (e.clientY || e.touches[0].clientY) - startY;
-            
-            let newLeft = startLeft;
-            let newTop = startTop;
-            let newWidth = startWidth;
-            let newHeight = startHeight;
-            
-            // Lógica de redimensionamento baseada na direção
-            switch(resizeDirection) {
-                case 'e':
-                    newWidth = Math.max(50, startWidth + deltaX);
-                    break;
-                case 'w':
-                    newWidth = Math.max(50, startWidth - deltaX);
-                    newLeft = startLeft + deltaX;
-                    break;
-                case 's':
-                    newHeight = Math.max(50, startHeight + deltaY);
-                    break;
-                case 'n':
-                    newHeight = Math.max(50, startHeight - deltaY);
-                    newTop = startTop + deltaY;
-                    break;
-                case 'se':
-                    newWidth = Math.max(50, startWidth + deltaX);
-                    newHeight = Math.max(50, startHeight + deltaY);
-                    break;
-                case 'sw':
-                    newWidth = Math.max(50, startWidth - deltaX);
-                    newHeight = Math.max(50, startHeight + deltaY);
-                    newLeft = startLeft + deltaX;
-                    break;
-                case 'ne':
-                    newWidth = Math.max(50, startWidth + deltaX);
-                    newHeight = Math.max(50, startHeight - deltaY);
-                    newTop = startTop + deltaY;
-                    break;
-                case 'nw':
-                    newWidth = Math.max(50, startWidth - deltaX);
-                    newHeight = Math.max(50, startHeight - deltaY);
-                    newLeft = startLeft + deltaX;
-                    newTop = startTop + deltaY;
-                    break;
-            }
-            
-            // Limita dentro do container
-            const maxLeft = container.width - newWidth;
-            const maxTop = container.height - newHeight;
-            
-            newLeft = Math.max(0, Math.min(newLeft, maxLeft));
-            newTop = Math.max(0, Math.min(newTop, maxTop));
-            newWidth = Math.min(newWidth, container.width - newLeft);
-            newHeight = Math.min(newHeight, container.height - newTop);
-            
-            areaBox.style.left = newLeft + 'px';
-            areaBox.style.top = newTop + 'px';
-            areaBox.style.width = newWidth + 'px';
-            areaBox.style.height = newHeight + 'px';
-            
-            // Atualiza coordenadas
-            const areaIndex = areas.findIndex(a => a.number === currentArea);
-            if (areaIndex !== -1) {
-                areas[areaIndex].x = newLeft;
-                areas[areaIndex].y = newTop;
-                areas[areaIndex].width = newWidth;
-                areas[areaIndex].height = newHeight;
-                updateCoordinates();
-            }
-        }
-
-        function stopDrag() {
-            isDragging = false;
-            currentArea = null;
-            document.removeEventListener('mousemove', drag);
-            document.removeEventListener('touchmove', drag);
-        }
-
-        function stopResize() {
-            isResizing = false;
-            resizeDirection = null;
-            currentArea = null;
-            document.removeEventListener('mousemove', resize);
-            document.removeEventListener('touchmove', resize);
-        }
-
-        function updateCoordinates() {
-            const output = document.getElementById('coordinatesOutput');
-            if (areas.length === 0) {
-                output.textContent = 'Aguardando definição das áreas...';
+            if (markers.length === 0) {
+                output.textContent = '// Aguardando marcações...\n// Clique nos botões acima e depois clique no template';
                 return;
             }
             
-            let text = '// COORDENADAS PARA COLAR NO pc.html\n';
-            text += 'const photoAreas = [\n';
+            // Ordena marcadores por número
+            markers.sort((a, b) => a.number - b.number);
             
-            areas.sort((a, b) => a.number - b.number).forEach(area => {
-                text += `  {\n`;
-                text += `    number: ${area.number},\n`;
-                text += `    x: ${Math.round(area.x)},\n`;
-                text += `    y: ${Math.round(area.y)},\n`;
-                text += `    width: ${Math.round(area.width)},\n`;
-                text += `    height: ${Math.round(area.height)}\n`;
-                text += `  }${area.number < 3 ? ',' : ''}\n`;
+            let code = '// 📍 POSIÇÕES AUTOMÁTICAS - Cole no celular.html\n';
+            code += '// Baseado nas suas marcações no template\n\n';
+            code += 'const photoAreas = [\n';
+            
+            markers.forEach(marker => {
+                code += `  {\n`;
+                code += `    number: ${marker.number},\n`;
+                code += `    x: ${marker.absX},        // ${(marker.relX * 100).toFixed(1)}% da largura\n`;
+                code += `    y: ${marker.absY},        // ${(marker.relY * 100).toFixed(1)}% da altura\n`;
+                code += `    width: ${marker.width},   // ${Math.round(marker.width/templateWidth*100)}% da largura\n`;
+                code += `    height: ${marker.height}  // ${Math.round(marker.height/templateHeight*100)}% da altura\n`;
+                code += `  }${marker.number < 3 ? ',' : ''}\n`;
             });
             
-            text += '];';
-            output.textContent = text;
+            code += '];';
+            
+            output.textContent = code;
         }
 
-        function resetAreas() {
-            areas = [];
-            document.querySelectorAll('.area-box').forEach(el => el.remove());
-            updateCoordinates();
-        }
-
-        function copyCoordinates() {
-            const text = document.getElementById('coordinatesOutput').textContent;
+        function copyCode() {
+            const text = document.getElementById('outputCode').textContent;
             navigator.clipboard.writeText(text).then(() => {
-                alert('✅ Coordenadas copiadas! Agora cole no código pc.html');
+                alert('✅ Código copiado! Agora cole no arquivo celular.html');
             });
         }
 
-        function downloadConfig() {
-            const config = {
-                templateSize: { width: 3375, height: 6000 },
-                areas: areas.sort((a, b) => a.number - b.number)
-            };
-            
-            const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'photobooth-config.json';
-            a.click();
-            URL.revokeObjectURL(url);
-        }
+        // Inicialização
+        updateCode();
     </script>
 </body>
 </html>
