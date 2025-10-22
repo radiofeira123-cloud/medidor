@@ -1,96 +1,75 @@
-// server.js
 import express from "express";
+import cors from "cors";
 import fetch from "node-fetch";
-import JSZip from "jszip";
-import puppeteer from "puppeteer";
+import archiver from "archiver";
+import { tmpdir } from "os";
+import path from "path";
+import { createWriteStream } from "fs";
+import { fileURLToPath } from "url";
 
+// Configuração básica
 const app = express();
-const port = process.env.PORT || 3000;
+app.use(express.json());
 
-app.use(express.json({ limit: "10mb" }));
+// 🔥 Libera acesso de outros domínios (como Vercel ou GitHub Pages)
+app.use(cors({
+  origin: "*"
+}));
 
-// Rota principal para gerar o ZIP
-app.post("/zip", async (req, res) => {
-  const { url } = req.body;
-  if (!url) return res.status(400).json({ error: "Falta o link do álbum." });
+// Rota inicial opcional
+app.get("/", (req, res) => {
+  res.send("✅ Servidor de download do imgbb está online!");
+});
 
-  console.log("Baixando álbum:", url);
+// Rota principal que baixa o álbum e gera o ZIP
+app.post("/baixar", async (req, res) => {
+  const { albumUrl } = req.body;
+
+  if (!albumUrl) {
+    return res.status(400).json({ error: "Faltando link do álbum" });
+  }
 
   try {
-    // 1️⃣ Inicia o navegador invisível
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    // Busca o HTML do álbum
+    const html = await fetch(albumUrl).then(r => r.text());
+
+    // Expressão regular pra encontrar todos os links de imagens
+    const urls = [...html.matchAll(/https:\/\/i\.ibb\.co\/[^\s"']+\.(jpg|jpeg|png|gif)/g)].map(m => m[0]);
+
+    if (urls.length === 0) {
+      return res.status(404).json({ error: "Nenhuma imagem encontrada no álbum" });
+    }
+
+    // Cria um arquivo ZIP temporário
+    const tempPath = path.join(tmpdir(), `album_imgbb_${Date.now()}.zip`);
+    const output = createWriteStream(tempPath);
+    const archive = archiver("zip", { zlib: { level: 9 } });
+
+    archive.pipe(output);
+
+    // Faz o download de cada imagem e adiciona ao ZIP
+    for (let i = 0; i < urls.length; i++) {
+      const imgUrl = urls[i];
+      const imgResp = await fetch(imgUrl);
+      const buffer = await imgResp.arrayBuffer();
+      archive.append(Buffer.from(buffer), { name: `imagem_${i + 1}.jpg` });
+      console.log(`Baixada ${i + 1}/${urls.length}`);
+    }
+
+    await archive.finalize();
+
+    output.on("close", () => {
+      res.download(tempPath, "album_imgbb.zip", err => {
+        if (err) console.error("Erro ao enviar ZIP:", err);
+      });
     });
-    const page = await browser.newPage();
 
-    await page.goto(url, { waitUntil: "networkidle2" });
-
-    // 2️⃣ Rola até o final pra carregar todas as imagens
-    let prevHeight;
-    let scrollTries = 0;
-    while (scrollTries < 10) {
-      const newHeight = await page.evaluate("document.body.scrollHeight");
-      if (prevHeight === newHeight) {
-        scrollTries++;
-        await new Promise((r) => setTimeout(r, 500));
-      } else {
-        scrollTries = 0;
-        prevHeight = newHeight;
-        await page.evaluate("window.scrollTo(0, document.body.scrollHeight)");
-        await new Promise((r) => setTimeout(r, 1000));
-      }
-    }
-
-    // 3️⃣ Coleta todas as URLs de imagem
-    const imageUrls = await page.$$eval("img", (imgs) =>
-      imgs
-        .map((img) => img.src || img.dataset.src)
-        .filter((src) => src && /\.(jpg|jpeg|png|gif|webp)$/i.test(src))
-    );
-
-    await browser.close();
-
-    console.log(`Encontradas ${imageUrls.length} imagens.`);
-
-    if (!imageUrls.length) {
-      return res.status(404).json({ error: "Nenhuma imagem encontrada." });
-    }
-
-    // 4️⃣ Baixa e compacta as imagens
-    const zip = new JSZip();
-    let count = 0;
-
-    for (const imgUrl of imageUrls) {
-      count++;
-      console.log(`Baixando imagem ${count}/${imageUrls.length}: ${imgUrl}`);
-      try {
-        const response = await fetch(imgUrl);
-        if (!response.ok) continue;
-        const buffer = await response.arrayBuffer();
-        const filename = imgUrl.split("/").pop().split("?")[0] || `img${count}.jpg`;
-        zip.file(filename, Buffer.from(buffer));
-      } catch (e) {
-        console.log("Erro ao baixar:", imgUrl, e.message);
-      }
-    }
-
-    const zipBuffer = await zip.generateAsync({ type: "nodebuffer" });
-
-    // 5️⃣ Envia o ZIP pro navegador
-    res.set({
-      "Content-Type": "application/zip",
-      "Content-Disposition": 'attachment; filename="album.zip"',
-    });
-    res.send(zipBuffer);
   } catch (err) {
-    console.error("Erro:", err);
-    res.status(500).json({ error: "Erro interno do servidor", details: err.message });
+    console.error("Erro ao processar álbum:", err);
+    res.status(500).json({ error: "Erro interno ao baixar o álbum" });
   }
 });
 
-app.get("/", (req, res) => {
-  res.send("Servidor de ZIP do imgbb ativo!");
-});
-
-app.listen(port, () => console.log(`Servidor rodando na porta ${port}`));
+// Render exige que a porta venha do ambiente
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, () => console.log(`🚀 Servidor rodando na porta ${PORT}`));
