@@ -1,298 +1,196 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Medidor Melhorado - Photobooth</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
-            background: #1a1a1a;
-            color: white;
-        }
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-        }
-        h1 {
-            text-align: center;
-            margin-bottom: 20px;
-            color: #fff;
-        }
-        .upload-section {
-            border: 2px dashed #666;
-            padding: 40px;
-            text-align: center;
-            margin-bottom: 20px;
-            border-radius: 10px;
-            cursor: pointer;
-        }
-        .upload-section:hover {
-            border-color: #007bff;
-        }
-        #templatePreview {
-            max-width: 100%;
-            max-height: 500px;
-            display: none;
-            margin: 0 auto;
-            border: 2px solid #444;
-        }
-        .instructions {
-            background: #2a2a2a;
-            padding: 20px;
-            border-radius: 10px;
-            margin: 20px 0;
-            line-height: 1.6;
-        }
-        .area-marker {
-            position: absolute;
-            border: 3px solid;
-            background: rgba(255, 255, 255, 0.2);
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            color: white;
-            font-size: 20px;
-            text-shadow: 1px 1px 2px black;
-        }
-        #imageContainer {
-            position: relative;
-            display: inline-block;
-            margin: 20px 0;
-        }
-        .coordinates-output {
-            background: #333;
-            padding: 20px;
-            border-radius: 10px;
-            margin: 20px 0;
-            font-family: monospace;
-            white-space: pre-wrap;
-        }
-        button {
-            background: #007bff;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            margin: 5px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-        }
-        button:hover {
-            background: #0056b3;
-        }
-        .marker-controls {
-            text-align: center;
-            margin: 20px 0;
-        }
-        .area-info {
-            margin: 10px 0;
-            padding: 10px;
-            background: #2a2a2a;
-            border-radius: 5px;
-        }
-    </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Imgbb Album → ZIP</title>
+  <style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; padding: 24px; max-width:900px; margin:0 auto; }
+    input[type=text] { width:100%; padding:10px; font-size:16px; box-sizing:border-box; }
+    button { padding:10px 14px; font-size:16px; margin-top:8px; }
+    .log { white-space:pre-wrap; margin-top:12px; border-radius:8px; padding:10px; background:#f4f4f6; }
+    .small { font-size:13px; color:#555; margin-top:6px }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <h1>🎯 Medidor Melhorado - Posições Relativas</h1>
-        
-        <div class="instructions">
-            <h3>📋 COMO USAR (MUITO MAIS FÁCIL):</h3>
-            <ol>
-                <li><strong>Carregue seu template</strong> (3375x6000 pixels)</li>
-                <li><strong>Clique exatamente no CENTRO de cada área</strong> onde deve ficar cada foto</li>
-                <li><strong>O sistema calcula automaticamente</strong> as posições relativas</li>
-                <li><strong>Copie o código gerado</strong> e cole no celular.html</li>
-            </ol>
-            <p>💡 <strong>Dica:</strong> Clique no meio de cada espaço vazio do template</p>
-        </div>
+  <h1>Imgbb Album → ZIP</h1>
+  <p>Cole o link público do álbum do imgbb e clique em "Gerar ZIP". Se houver bloqueio CORS, use a opção com proxy (veja abaixo).</p>
 
-        <div class="upload-section" id="uploadSection">
-            <p>📁 CLIQUE AQUI PARA CARREGAR SEU TEMPLATE</p>
-            <p><small>Dimensões: 3375 × 6000 pixels (Vertical)</small></p>
-            <input type="file" id="fileInput" accept="image/*" style="display: none;">
-        </div>
+  <label>Link do álbum:
+    <input id="albumUrl" type="text" placeholder="https://imgbb.com/album/XXXXX ou link público do álbum" />
+  </label>
+  <div style="display:flex;gap:8px; flex-wrap:wrap; margin-top:8px;">
+    <button id="btn">Gerar ZIP</button>
+    <button id="btn-proxy">Gerar ZIP (usar proxy público)</button>
+    <button id="btn-clear">Limpar log</button>
+  </div>
 
-        <div id="imageContainer" style="display: none;">
-            <img id="templatePreview" alt="Template Preview">
-        </div>
+  <div class="small">Proxy público usado (se ativado): <code>https://api.allorigins.win/raw?url=</code></div>
 
-        <div class="marker-controls">
-            <button onclick="addMarker(1)">📍 Marcar Posição da Foto 1</button>
-            <button onclick="addMarker(2)">📍 Marcar Posição da Foto 2</button>
-            <button onclick="addMarker(3)">📍 Marcar Posição da Foto 3</button>
-            <button onclick="clearMarkers()" style="background: #dc3545;">🗑️ Limpar Marcadores</button>
-        </div>
+  <div id="log" class="log"></div>
 
-        <div class="coordinates-output">
-            <h3>📋 CÓDIGO GERADO (Cole no celular.html):</h3>
-            <pre id="outputCode">// Aguardando marcações...</pre>
-        </div>
+  <!-- CDN libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
 
-        <div style="text-align: center;">
-            <button onclick="copyCode()" style="background: #28a745;">📋 Copiar Código</button>
-        </div>
-    </div>
+  <script>
+    const btn = document.getElementById('btn');
+    const btnProxy = document.getElementById('btn-proxy');
+    const btnClear = document.getElementById('btn-clear');
+    const albumInput = document.getElementById('albumUrl');
+    const logEl = document.getElementById('log');
 
-    <script>
-        let markers = [];
-        let templateWidth = 3375;
-        let templateHeight = 6000;
+    function log(...args){
+      logEl.textContent += args.join(' ') + '\\n';
+      logEl.scrollTop = logEl.scrollHeight;
+    }
 
-        document.getElementById('uploadSection').addEventListener('click', () => {
-            document.getElementById('fileInput').click();
-        });
+    function resetLog(){ logEl.textContent = ''; }
 
-        document.getElementById('fileInput').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const img = document.getElementById('templatePreview');
-                    img.src = e.target.result;
-                    img.style.display = 'block';
-                    document.getElementById('imageContainer').style.display = 'block';
-                    document.getElementById('uploadSection').style.display = 'none';
-                    
-                    img.onload = function() {
-                        clearMarkers();
-                    };
-                };
-                reader.readAsDataURL(file);
+    function isLikelyImageUrl(url){
+      if(!url) return false;
+      url = url.split('?')[0].split('#')[0];
+      return /\.(jpe?g|png|gif|webp|bmp|svg)$/i.test(url) ||
+             /i\.ibb|imgbb|iili\.io|cdn\.imgbb/i.test(url); // heurística
+    }
+
+    async function fetchText(url){
+      const res = await fetch(url);
+      if(!res.ok) throw new Error('HTTP ' + res.status);
+      return await res.text();
+    }
+
+    // extrai URLs de <img src=...> e de atributos data-src / background-image etc.
+    function extractImageUrlsFromHtml(html, baseUrl){
+      const urls = new Set();
+      // regex para src, data-src, srcset, background-image:url(...)
+      const re = /(?:src|data-src|data-lazy|data-srcset|data-original|srcset)=["']([^"']+)["']|background-image:\s*url\(([^)]+)\)/ig;
+      let m;
+      while((m = re.exec(html)) !== null){
+        const candidate = (m[1] || m[2] || '').trim().replace(/^['"]|['"]$/g,'');
+        if(!candidate) continue;
+        // se srcset, pega primeiro url separado por espaços
+        const first = candidate.split(',')[0].trim().split(' ')[0];
+        let u = first;
+        // tornar relativo em absoluto se baseUrl estiver
+        try {
+          u = new URL(u, baseUrl).href;
+        } catch(e){}
+        if(isLikelyImageUrl(u)) urls.add(u);
+      }
+      // também tente pegar URLs directas em tags <a> que apontam para imagens
+      const re2 = /href=["']([^"']+\.(?:jpg|jpeg|png|gif|webp|bmp|svg))["']/ig;
+      while((m = re2.exec(html)) !== null){
+        let u = m[1];
+        try { u = new URL(u, baseUrl).href; } catch(e){}
+        if(isLikelyImageUrl(u)) urls.add(u);
+      }
+      return Array.from(urls);
+    }
+
+    async function downloadAndZip(urls, zipName = 'album.zip'){
+      const zip = new JSZip();
+      let count = 0;
+      for(const imgUrl of urls){
+        count++;
+        log(`(${count}/${urls.length}) baixando: ${imgUrl}`);
+        try{
+          const res = await fetch(imgUrl, {mode:'cors'});
+          if(!res.ok) { log('  falha HTTP', res.status); continue; }
+          const blob = await res.blob();
+          // extrair nome do arquivo
+          let filename = imgUrl.split('/').pop().split('?')[0] || `img-${count}.jpg`;
+          // garantir extensão
+          if(!/\.[a-zA-Z0-9]{2,5}$/.test(filename)) filename += '.jpg';
+          zip.file(filename, blob);
+        }catch(err){
+          log('  erro ao baixar:', err.message || err);
+        }
+      }
+
+      log('Gerando ZIP (compactando)...');
+      const content = await zip.generateAsync({type:'blob'}, (meta) => {
+        log(`  compactando: ${Math.round(meta.percent)}%`);
+      });
+      saveAs(content, zipName);
+      log('Download iniciado: ' + zipName);
+    }
+
+    // main: tenta buscar a página direta (ou via proxy) e extrair imagens
+    async function handleGenerate(useProxy = false){
+      resetLog();
+      const raw = albumInput.value.trim();
+      if(!raw){ log('Cole o link do álbum antes.'); return; }
+
+      // simples validação
+      let target = raw;
+      // se usuário colou um link curto do imgbb, ok.
+      try {
+        // se não começar com http, adicionar
+        if(!/^https?:\/\//i.test(target)) target = 'https://' + target;
+      } catch(e){}
+
+      // se usar proxy público (AllOrigins) -> evita CORS no HTML
+      const proxyPrefix = 'https://api.allorigins.win/raw?url=';
+      const fetchUrl = useProxy ? proxyPrefix + encodeURIComponent(target) : target;
+
+      log('Buscando página do álbum...');
+      let html;
+      try{
+        html = await fetchText(fetchUrl);
+      }catch(err){
+        log('Erro ao buscar a página:', err.message || err);
+        log('Se for CORS, tente o botão "Gerar ZIP (usar proxy público)" ou use o proxy Node.js próprio.');
+        return;
+      }
+
+      log('Extraindo URLs de imagem...');
+      const images = extractImageUrlsFromHtml(html, target);
+      if(images.length === 0){
+        log('Nenhuma imagem encontrada automaticamente. Possíveis causas: conteúdo carregado via JavaScript dinâmico (imagens carregadas por script) ou album privado.');
+        // tentativa extra: buscar JSON embutido (imagens em scripts)
+        const reJson = /window\.__INITIAL_STATE__\s*=\s*({[\s\S]*?});/i;
+        const m = reJson.exec(html);
+        if(m){
+          try {
+            const obj = JSON.parse(m[1]);
+            // procurar urls dentro do objeto
+            function walk(o){
+              if(!o) return [];
+              let out=[];
+              if(typeof o === 'string'){
+                if(isLikelyImageUrl(o)) out.push(o);
+              } else if(Array.isArray(o)){
+                for(const e of o) out = out.concat(walk(e));
+              } else if(typeof o === 'object'){
+                for(const k in o) out = out.concat(walk(o[k]));
+              }
+              return out;
             }
-        });
-
-        function addMarker(photoNumber) {
-            const img = document.getElementById('templatePreview');
-            const container = document.getElementById('imageContainer');
-            
-            // Remove marcador existente
-            const existingMarker = document.querySelector(`[data-photo="${photoNumber}"]`);
-            if (existingMarker) {
-                existingMarker.remove();
-                markers = markers.filter(m => m.number !== photoNumber);
-            }
-            
-            // Cria instrução
-            alert(`📍 Clique no CENTRO da área onde deve ficar a FOTO ${photoNumber}`);
-            
-            // Adiciona evento de clique único
-            const clickHandler = (e) => {
-                const rect = img.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
-                
-                // Calcula posições relativas (0-1)
-                const relX = x / rect.width;
-                const relY = y / rect.height;
-                
-                // Converte para pixels no template original
-                const absX = Math.round(relX * templateWidth);
-                const absY = Math.round(relY * templateHeight);
-                
-                // Tamanho padrão baseado no template (ajustável)
-                const width = Math.round(templateWidth * 0.2); // 20% da largura
-                const height = Math.round(templateHeight * 0.1); // 10% da altura
-                
-                // Cria marcador visual
-                createVisualMarker(photoNumber, x, y, container);
-                
-                // Salva marcador
-                markers.push({
-                    number: photoNumber,
-                    relX: relX,
-                    relY: relY,
-                    absX: absX,
-                    absY: absY,
-                    width: width,
-                    height: height
-                });
-                
-                // Atualiza código
-                updateCode();
-                
-                // Remove evento
-                img.removeEventListener('click', clickHandler);
-            };
-            
-            img.addEventListener('click', clickHandler, { once: true });
+            const found = walk(obj);
+            found.forEach(u=>images.push(u));
+          }catch(e){}
         }
+      }
 
-        function createVisualMarker(photoNumber, x, y, container) {
-            const marker = document.createElement('div');
-            marker.className = 'area-marker';
-            marker.dataset.photo = photoNumber;
-            marker.textContent = photoNumber;
-            
-            // Estilo baseado no número da foto
-            const colors = ['#ff4444', '#44ff44', '#4444ff'];
-            marker.style.borderColor = colors[photoNumber - 1];
-            marker.style.background = colors[photoNumber - 1] + '40';
-            
-            // Posiciona o marcador (20px para cima/esquerda para centralizar)
-            marker.style.left = (x - 20) + 'px';
-            marker.style.top = (y - 20) + 'px';
-            marker.style.width = '40px';
-            marker.style.height = '40px';
-            marker.style.borderRadius = '50%';
-            
-            container.appendChild(marker);
-        }
+      // remover duplicatas e garantir que parecem imagens
+      const uniq = Array.from(new Set(images)).filter(isLikelyImageUrl);
+      log('Imagens encontradas:', uniq.length);
+      if(uniq.length === 0){
+        log('Sem imagens para baixar. Tente usar o proxy Node.js ou verifique se o álbum é público.');
+        return;
+      }
 
-        function clearMarkers() {
-            markers = [];
-            document.querySelectorAll('.area-marker').forEach(marker => marker.remove());
-            updateCode();
-        }
+      // nome do zip a partir do último segmento do URL do álbum
+      let zipName = (new URL(target)).pathname.split('/').filter(Boolean).pop() || 'album';
+      zipName = zipName.replace(/[^a-z0-9\-_\.]/ig,'') + '.zip';
+      await downloadAndZip(uniq, zipName);
+    }
 
-        function updateCode() {
-            const output = document.getElementById('outputCode');
-            
-            if (markers.length === 0) {
-                output.textContent = '// Aguardando marcações...\n// Clique nos botões acima e depois clique no template';
-                return;
-            }
-            
-            // Ordena marcadores por número
-            markers.sort((a, b) => a.number - b.number);
-            
-            let code = '// 📍 POSIÇÕES AUTOMÁTICAS - Cole no celular.html\n';
-            code += '// Baseado nas suas marcações no template\n\n';
-            code += 'const photoAreas = [\n';
-            
-            markers.forEach(marker => {
-                code += `  {\n`;
-                code += `    number: ${marker.number},\n`;
-                code += `    x: ${marker.absX},        // ${(marker.relX * 100).toFixed(1)}% da largura\n`;
-                code += `    y: ${marker.absY},        // ${(marker.relY * 100).toFixed(1)}% da altura\n`;
-                code += `    width: ${marker.width},   // ${Math.round(marker.width/templateWidth*100)}% da largura\n`;
-                code += `    height: ${marker.height}  // ${Math.round(marker.height/templateHeight*100)}% da altura\n`;
-                code += `  }${marker.number < 3 ? ',' : ''}\n`;
-            });
-            
-            code += '];';
-            
-            output.textContent = code;
-        }
+    btn.addEventListener('click', ()=>handleGenerate(false));
+    btnProxy.addEventListener('click', ()=>handleGenerate(true));
+    btnClear.addEventListener('click', resetLog);
 
-        function copyCode() {
-            const text = document.getElementById('outputCode').textContent;
-            navigator.clipboard.writeText(text).then(() => {
-                alert('✅ Código copiado! Agora cole no arquivo celular.html');
-            });
-        }
-
-        // Inicialização
-        updateCode();
-    </script>
+  </script>
 </body>
 </html>
