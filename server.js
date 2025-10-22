@@ -1,84 +1,96 @@
+// server.js
 import express from "express";
-import puppeteer from "puppeteer";
+import fetch from "node-fetch";
 import JSZip from "jszip";
-import axios from "axios";
+import puppeteer from "puppeteer";
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: "10mb" }));
 
-// CORS liberado pro teu frontend do GitHub Pages
-app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Methods", "GET, POST");
-  res.header("Access-Control-Allow-Headers", "Content-Type");
-  next();
-});
-
-app.post("/download-album", async (req, res) => {
+// Rota principal para gerar o ZIP
+app.post("/zip", async (req, res) => {
   const { url } = req.body;
-  if (!url) return res.status(400).json({ error: "URL do álbum não fornecida." });
+  if (!url) return res.status(400).json({ error: "Falta o link do álbum." });
 
-  console.log("🔗 Recebendo álbum:", url);
-  res.setHeader("Content-Type", "application/zip");
-  res.setHeader("Content-Disposition", "attachment; filename=album.zip");
+  console.log("Baixando álbum:", url);
 
   try {
-    // abre o navegador invisível
+    // 1️⃣ Inicia o navegador invisível
     const browser = await puppeteer.launch({
-      headless: "new",
+      headless: true,
       args: ["--no-sandbox", "--disable-setuid-sandbox"],
     });
     const page = await browser.newPage();
-    await page.goto(url, { waitUntil: "networkidle2", timeout: 0 });
 
-    // rola até o fim do álbum pra carregar todas as imagens
-    let lastHeight = await page.evaluate("document.body.scrollHeight");
-    while (true) {
-      await page.evaluate("window.scrollTo(0, document.body.scrollHeight)");
-      await page.waitForTimeout(1500);
-      let newHeight = await page.evaluate("document.body.scrollHeight");
-      if (newHeight === lastHeight) break;
-      lastHeight = newHeight;
+    await page.goto(url, { waitUntil: "networkidle2" });
+
+    // 2️⃣ Rola até o final pra carregar todas as imagens
+    let prevHeight;
+    let scrollTries = 0;
+    while (scrollTries < 10) {
+      const newHeight = await page.evaluate("document.body.scrollHeight");
+      if (prevHeight === newHeight) {
+        scrollTries++;
+        await new Promise((r) => setTimeout(r, 500));
+      } else {
+        scrollTries = 0;
+        prevHeight = newHeight;
+        await page.evaluate("window.scrollTo(0, document.body.scrollHeight)");
+        await new Promise((r) => setTimeout(r, 1000));
+      }
     }
 
-    // pega todas as URLs de imagem
-    const imageUrls = await page.evaluate(() => {
-      const imgs = Array.from(document.querySelectorAll("img"));
-      return imgs
-        .map((img) => img.src)
-        .filter((src) => src && /ibb\.co|i\.ibb\.co|iili\.io/i.test(src));
-    });
+    // 3️⃣ Coleta todas as URLs de imagem
+    const imageUrls = await page.$$eval("img", (imgs) =>
+      imgs
+        .map((img) => img.src || img.dataset.src)
+        .filter((src) => src && /\.(jpg|jpeg|png|gif|webp)$/i.test(src))
+    );
 
-    console.log(`🖼️ Encontradas ${imageUrls.length} imagens.`);
     await browser.close();
 
-    // baixa e compacta tudo
+    console.log(`Encontradas ${imageUrls.length} imagens.`);
+
+    if (!imageUrls.length) {
+      return res.status(404).json({ error: "Nenhuma imagem encontrada." });
+    }
+
+    // 4️⃣ Baixa e compacta as imagens
     const zip = new JSZip();
     let count = 0;
 
     for (const imgUrl of imageUrls) {
+      count++;
+      console.log(`Baixando imagem ${count}/${imageUrls.length}: ${imgUrl}`);
       try {
-        const response = await axios.get(imgUrl, { responseType: "arraybuffer" });
-        const fileName =
-          imgUrl.split("/").pop().split("?")[0] || `img-${++count}.jpg`;
-        zip.file(fileName, response.data);
-        console.log(`✔️ ${fileName}`);
-      } catch (err) {
-        console.log(`❌ Falha ao baixar ${imgUrl}`);
+        const response = await fetch(imgUrl);
+        if (!response.ok) continue;
+        const buffer = await response.arrayBuffer();
+        const filename = imgUrl.split("/").pop().split("?")[0] || `img${count}.jpg`;
+        zip.file(filename, Buffer.from(buffer));
+      } catch (e) {
+        console.log("Erro ao baixar:", imgUrl, e.message);
       }
     }
 
-    const zipData = await zip.generateAsync({ type: "nodebuffer" });
-    res.end(zipData);
+    const zipBuffer = await zip.generateAsync({ type: "nodebuffer" });
+
+    // 5️⃣ Envia o ZIP pro navegador
+    res.set({
+      "Content-Type": "application/zip",
+      "Content-Disposition": 'attachment; filename="album.zip"',
+    });
+    res.send(zipBuffer);
   } catch (err) {
     console.error("Erro:", err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: "Erro interno do servidor", details: err.message });
   }
 });
 
-app.listen(port, () =>
-  console.log(`🚀 Servidor rodando na porta ${port}`)
-);
+app.get("/", (req, res) => {
+  res.send("Servidor de ZIP do imgbb ativo!");
+});
+
+app.listen(port, () => console.log(`Servidor rodando na porta ${port}`));
